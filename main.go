@@ -56,8 +56,49 @@ func main() {
 		Format = "%d"
 	}
 
+	s, err := gocron.NewScheduler()
+	if err != nil {
+		panic("failed to create new scheduler: " + err.Error())
+	}
+
 	t := time.Now()
 	Tomorrow = time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.Local).Add(time.Hour * 24)
+
+	j, err := s.NewJob(
+		gocron.DailyJob(
+			1,
+			gocron.NewAtTimes(
+				gocron.NewAtTime(0, 0, 0),
+			),
+		),
+		gocron.NewTask(
+			func() {
+				t = time.Now()
+				Tomorrow = time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.Local).Add(time.Hour * 24)
+				if Flag {
+					Flag = false
+				} else {
+					msg := fmt.Sprintf(Format, Latest_ID-Last_ID)
+					b.SendMessage(CHAT_ID, msg, nil)
+				}
+			},
+		),
+	)
+
+	if err != nil {
+		panic("failed to create new job: " + err.Error())
+	}
+
+	s.Start()
+
+	dispatcher.AddHandler(handlers.NewCommand("test", func(b *gotgbot.Bot, ctx *ext.Context) error {
+		if ctx.EffectiveUser.Id != 1042436080 {
+			return nil
+		}
+		Latest_ID = ctx.EffectiveMessage.MessageId
+		j.RunNow()
+		return nil
+	}))
 
 	dispatcher.AddHandler(handlers.NewCommand("last", func(b *gotgbot.Bot, ctx *ext.Context) error {
 		user, err := b.GetChatMember(CHAT_ID, ctx.EffectiveUser.Id, nil)
@@ -79,6 +120,8 @@ func main() {
 		if len(c) != 2 {
 			if m.ReplyToMessage != nil {
 				id = m.ReplyToMessage.MessageId
+			} else {
+				id = m.MessageId
 			}
 		} else {
 			id, err = strconv.ParseInt(c[1], 10, 64)
@@ -127,6 +170,8 @@ func main() {
 			Last_ID = Latest_ID - 1
 		}
 
+		log.Info(Latest_ID, Last_ID)
+
 		// ~~下面那段虽然估计没必要，但万一呢~~
 		t = time.Unix(msg.GetDate(), 0)
 		if !t.Before(Tomorrow) {
@@ -138,38 +183,6 @@ func main() {
 		}
 		return nil
 	}))
-
-	s, err := gocron.NewScheduler()
-	if err != nil {
-		panic("failed to create new scheduler: " + err.Error())
-	}
-
-	_, err = s.NewJob(
-		gocron.DailyJob(
-			1,
-			gocron.NewAtTimes(
-				gocron.NewAtTime(0, 0, 0),
-			),
-		),
-		gocron.NewTask(
-			func() {
-				t = time.Now()
-				Tomorrow = time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.Local).Add(time.Hour * 24)
-				if Flag {
-					Flag = false
-				} else {
-					msg := fmt.Sprintf(Format, Latest_ID-Last_ID)
-					b.SendMessage(CHAT_ID, msg, nil)
-				}
-			},
-		),
-	)
-
-	if err != nil {
-		panic("failed to create new job: " + err.Error())
-	}
-
-	s.Start()
 
 	err = updater.StartPolling(b, &ext.PollingOpts{
 		DropPendingUpdates: true,
