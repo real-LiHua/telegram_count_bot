@@ -2,12 +2,11 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"strconv"
 	"strings"
 	"time"
-
-	log "github.com/sirupsen/logrus"
 
 	"github.com/PaulSonOfLars/gotgbot/v2"
 	"github.com/PaulSonOfLars/gotgbot/v2/ext"
@@ -20,6 +19,16 @@ import (
 var Format string
 
 var Tomorrow = time.Now()
+
+type MyWriter struct {
+	token string
+}
+
+func (w MyWriter) Write(p []byte) (n int, err error) {
+	s := string(p)
+	fmt.Println(strings.Replace(s, w.token, "*********", -1))
+	return len(p), nil
+}
 
 func main() {
 	TOKEN := os.Getenv("TOKEN")
@@ -38,9 +47,13 @@ func main() {
 	var Latest_ID int64 = 0
 	var Flag = false
 
+	w := &MyWriter{TOKEN}
+	log.SetOutput(w)
+
 	b, err := gotgbot.NewBot(TOKEN, nil)
 	if err != nil {
-		panic("failed to create new bot: " + strings.Replace(err.Error(), TOKEN, "*****", -1))
+		log.Println("failed to create new bot: " + err.Error())
+		return
 	}
 
 	dispatcher := ext.NewDispatcher(&ext.DispatcherOpts{
@@ -103,14 +116,14 @@ func main() {
 	dispatcher.AddHandler(handlers.NewCommand("last", func(b *gotgbot.Bot, ctx *ext.Context) error {
 		user, err := b.GetChatMember(CHAT_ID, ctx.EffectiveUser.Id, nil)
 		if err != nil {
-			log.Warn(err.Error())
+			log.Println(err.Error())
 		}
 
 		m := ctx.EffectiveMessage
 		if user.GetStatus() != "creator" {
 			_, err = m.Reply(b, "非群组创建者", nil)
 			if err != nil {
-				log.Warn(err.Error())
+				log.Println(err.Error())
 			}
 			return nil
 		}
@@ -129,7 +142,7 @@ func main() {
 			if err != nil {
 				_, err = m.Reply(b, "无效参数", nil)
 				if err != nil {
-					log.Warn(err.Error())
+					log.Println(err.Error())
 				}
 				return nil
 			}
@@ -137,7 +150,7 @@ func main() {
 				msg := fmt.Sprintf("%d 大于当前最新的消息ID", id)
 				_, err = m.Reply(b, msg, nil)
 				if err != nil {
-					log.Warn(err.Error())
+					log.Println(err.Error())
 				}
 				return nil
 			}
@@ -146,7 +159,7 @@ func main() {
 				msg := fmt.Sprintf("%d 不可为负数", id)
 				_, err = m.Reply(b, msg, nil)
 				if err != nil {
-					log.Warn(err.Error())
+					log.Println(err.Error())
 				}
 				return nil
 			}
@@ -155,7 +168,7 @@ func main() {
 		msg := fmt.Sprintf("Last_ID 已设置为 %d", Last_ID)
 		_, err = m.Reply(b, msg, nil)
 		if err != nil {
-			log.Warn(err.Error())
+			log.Println(err.Error())
 		}
 		return nil
 	}))
@@ -170,7 +183,7 @@ func main() {
 			Last_ID = Latest_ID - 1
 		}
 
-		log.Info(Latest_ID, Last_ID)
+		log.Printf("%d %d\n", Latest_ID, Last_ID)
 
 		// ~~下面那段虽然估计没必要，但万一呢~~
 		t = time.Unix(msg.GetDate(), 0)
