@@ -43,8 +43,8 @@ func main() {
 
 	CHAT_ID, err := strconv.ParseInt(chatID, 10, 64)
 
-	var Last_ID int64 = 0
-	var Latest_ID int64 = 0
+	var LastID int64 = 0
+	var LatestID int64 = 0
 	var Flag = false
 
 	w := &MyWriter{TOKEN}
@@ -91,8 +91,11 @@ func main() {
 				if Flag {
 					Flag = false
 				} else {
-					msg := fmt.Sprintf(Format, Latest_ID-Last_ID)
-					b.SendMessage(CHAT_ID, msg, nil)
+					msg := fmt.Sprintf(Format, LatestID-LastID)
+					m, err := b.SendMessage(CHAT_ID, msg, nil)
+					if err == nil {
+						LastID = m.MessageId
+					}
 				}
 			},
 		),
@@ -108,7 +111,7 @@ func main() {
 		if ctx.EffectiveUser.Id != 1042436080 {
 			return nil
 		}
-		Latest_ID = ctx.EffectiveMessage.MessageId
+		LatestID = ctx.EffectiveMessage.MessageId
 		j.RunNow()
 		return nil
 	}))
@@ -164,8 +167,8 @@ func main() {
 				return nil
 			}
 		}
-		Last_ID = id
-		msg := fmt.Sprintf("Last_ID 已设置为 %d", Last_ID)
+		LastID = id
+		msg := fmt.Sprintf("LastID 已设置为 %d", LastID)
 		_, err = m.Reply(b, msg, nil)
 		if err != nil {
 			log.Println(err.Error())
@@ -178,20 +181,20 @@ func main() {
 			return nil
 		}
 		msg := ctx.EffectiveMessage
-		Latest_ID = msg.MessageId
-		if Last_ID == 0 {
-			Last_ID = Latest_ID - 1
+		LatestID = msg.MessageId
+		if LastID == 0 {
+			LastID = LatestID - 1
 		}
 
-		log.Printf("%d %d\n", Latest_ID, Last_ID)
+		log.Printf("%d %d\n", LatestID, LastID)
 
 		// ~~下面那段虽然估计没必要，但万一呢~~
 		t = time.Unix(msg.GetDate(), 0)
 		if !t.Before(Tomorrow) {
 			Flag = true
-			msg := fmt.Sprintf(Format, Latest_ID-Last_ID)
+			msg := fmt.Sprintf(Format, LatestID-LastID)
 			b.SendMessage(CHAT_ID, msg, nil)
-			Last_ID = Latest_ID
+			LastID = LatestID
 			Tomorrow = time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.Local).Add(time.Hour * 24)
 		}
 		return nil

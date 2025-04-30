@@ -33,6 +33,6 @@ go build -ldflags="-X 'main.Format=昨日消息数量：%d'"
 
 ## 可用命令
 `/last [MessageId]`，该命令逻辑如下  
-当带有参数时，`LAST_ID` 被设置为 MessageId  
-当不带有参数时，如果是作为消息回复，`LAST_ID` 被设置为被回复消息的消息 ID  
-当不带有参数且非作为消息回复时， `LAST_ID` 被设置为当前消息的消息ID
+当带有参数时，`LastID` 被设置为 MessageId  
+当不带有参数时，如果是作为消息回复，`LastID` 被设置为被回复消息的消息 ID  
+当不带有参数且非作为消息回复时， `LastID` 被设置为当前消息的消息ID
