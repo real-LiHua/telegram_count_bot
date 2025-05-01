@@ -33,15 +33,21 @@ func (w MyWriter) Write(p []byte) (n int, err error) {
 func main() {
 	TOKEN := os.Getenv("TOKEN")
 	if TOKEN == "" {
-		panic("TOKEN environment variable is empty")
+		log.Println("TOKEN environment variable is empty")
+		return
 	}
 
 	chatID := os.Getenv("CHAT_ID")
 	if chatID == "" {
-		panic("CHAT_ID environment variable is empty")
+		log.Println("CHAT_ID environment variable is empty")
+		return
 	}
 
 	CHAT_ID, err := strconv.ParseInt(chatID, 10, 64)
+	if err != nil {
+		log.Println(err.Error())
+		return
+	}
 
 	var LastID int64 = 0
 	var LatestID int64 = 0
